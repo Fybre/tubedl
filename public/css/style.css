@@ -1009,7 +1009,7 @@ details[open] > .advanced-toggle::before { transform: rotate(90deg); }
   .results-grid { grid-template-columns: 1fr; }
   .queue-sidebar { width: 100%; border-left: none; }
   .search-btn { padding: .55rem 1rem; }
-  .modal { max-width: 100%; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+  .modal { max-width: 100%; border-bottom-left-radius: 0; border-bottom-right-radius: 0; max-height: 92dvh; overflow-y: auto; }
   .modal-backdrop { align-items: flex-end; padding: 0; }
   .quality-grid { grid-template-columns: repeat(2, 1fr); }
 }

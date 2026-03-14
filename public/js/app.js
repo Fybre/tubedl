@@ -611,16 +611,34 @@ function isPWA() {
          window.navigator.standalone === true;
 }
 
-function downloadFile(id) {
+async function downloadFile(id) {
   const url = `/api/file/${id}`;
-  
-  // On iOS PWA, open in Safari for proper download handling
-  if (isIOS() && isPWA()) {
-    // Open in Safari - downloads work properly there
+  const job = state.queue.get(id);
+
+  if (isIOS()) {
+    // Try Web Share API with file blob (iOS 15+, works in PWA and Safari)
+    if (navigator.canShare) {
+      toast('Preparing download…', 'info');
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('File not available');
+        const blob = await response.blob();
+        const ext  = blob.type.includes('audio') ? '.mp3' : '.mp4';
+        const name = ((job?.title || 'download').replace(/[<>:"/\\|?*]/g, '').trim().substring(0, 100)) + ext;
+        const file = new File([blob], name, { type: blob.type });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: name });
+          return;
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return; // user dismissed share sheet
+        // fall through to Safari open
+      }
+    }
+    // Fallback: open URL in Safari — user taps Share → Save to Files
     window.open(url, '_blank');
-    toast('Opening in Safari for download...', 'info');
+    toast('Tap the Share button → Save to Files', 'info');
   } else {
-    // Normal download for other platforms
     window.location.href = url;
   }
 }
