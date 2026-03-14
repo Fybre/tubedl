@@ -611,35 +611,14 @@ function isPWA() {
          window.navigator.standalone === true;
 }
 
-async function downloadFile(id) {
+function downloadFile(id) {
   const url = `/api/file/${id}`;
   
-  // On iOS PWA, use native share sheet for better UX
-  if (isIOS() && isPWA() && navigator.share) {
-    try {
-      toast('Preparing download...', 'info');
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Download failed');
-      
-      const blob = await response.blob();
-      const filename = response.headers.get('Content-Disposition')?.match(/filename\*?="?([^"]+)"?/)?.[1] || 'download.mp4';
-      const cleanFilename = decodeURIComponent(filename).replace(/['"]/g, '');
-      
-      // Create a File object for sharing
-      const file = new File([blob], cleanFilename, { type: blob.type });
-      
-      // Use native iOS share sheet - includes "Save to Files" option
-      await navigator.share({
-        files: [file],
-        title: cleanFilename,
-      });
-      
-      toast('Saved!', 'success');
-    } catch (err) {
-      // User cancelled or share failed - try fallback
-      console.log('Share failed, trying fallback:', err);
-      window.location.href = url;
-    }
+  // On iOS PWA, open in Safari for proper download handling
+  if (isIOS() && isPWA()) {
+    // Open in Safari - downloads work properly there
+    window.open(url, '_blank');
+    toast('Opening in Safari for download...', 'info');
   } else {
     // Normal download for other platforms
     window.location.href = url;
