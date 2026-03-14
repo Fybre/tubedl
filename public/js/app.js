@@ -614,35 +614,30 @@ function isPWA() {
 async function downloadFile(id) {
   const url = `/api/file/${id}`;
   
-  // On iOS PWA, use fetch + blob to avoid navigation issues
-  if (isIOS() && isPWA()) {
+  // On iOS PWA, use native share sheet for better UX
+  if (isIOS() && isPWA() && navigator.share) {
     try {
-      toast('Downloading...', 'info');
+      toast('Preparing download...', 'info');
       const response = await fetch(url);
       if (!response.ok) throw new Error('Download failed');
       
       const blob = await response.blob();
-      const filename = response.headers.get('Content-Disposition')?.match(/filename\*?="?([^"]+)"?/)?.[1] || 'download';
+      const filename = response.headers.get('Content-Disposition')?.match(/filename\*?="?([^"]+)"?/)?.[1] || 'download.mp4';
+      const cleanFilename = decodeURIComponent(filename).replace(/['"]/g, '');
       
-      // Create object URL and trigger download
-      const objectUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = objectUrl;
-      a.download = decodeURIComponent(filename);
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      // Create a File object for sharing
+      const file = new File([blob], cleanFilename, { type: blob.type });
       
-      // Clean up
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      // Use native iOS share sheet - includes "Save to Files" option
+      await navigator.share({
+        files: [file],
+        title: cleanFilename,
+      });
       
-      // Show share button for iOS since downloads are tricky
-      if (navigator.share && blob.size < 50 * 1024 * 1024) { // Under 50MB
-        toast('Download started. Tap save to save to Files.', 'success');
-      }
+      toast('Saved!', 'success');
     } catch (err) {
-      toast('Download failed. Try opening in Safari.', 'error');
-      // Fallback to normal download
+      // User cancelled or share failed - try fallback
+      console.log('Share failed, trying fallback:', err);
       window.location.href = url;
     }
   } else {
