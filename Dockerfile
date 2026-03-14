@@ -30,9 +30,7 @@ COPY routes/       ./routes/
 COPY public/       ./public/
 
 # Create downloads directory with proper permissions
-RUN mkdir -p /app/downloads && chown -R node:node /app
-
-USER node
+RUN mkdir -p /app/downloads
 
 ENV NODE_ENV=production \
     PORT=3000 \
