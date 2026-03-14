@@ -2,7 +2,7 @@
 
 A modern web-based YouTube video and music downloader powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp). Search, queue, and download your favorite content with a clean, responsive interface — no ads, no tracking, no limits.
 
-![TubeDL Screenshot](public/icons/icon.svg)
+![TubeDL](https://github.com/Fybre/tubedl/raw/main/public/icons/icon.svg)
 
 ## Features
 
@@ -24,7 +24,7 @@ A modern web-based YouTube video and music downloader powered by [yt-dlp](https:
 
 ```bash
 # Clone and start
-git clone <repository-url>
+git clone https://github.com/Fybre/tubedl.git
 cd tubedl
 docker-compose up -d
 
