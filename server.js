@@ -37,30 +37,38 @@ const broadcast = (data, targetSessionId = null) => {
   });
 };
 
-wss.on('connection', (ws) => {
-  console.log('WebSocket client connected');
-  
-  // Wait for client to send session ID before sending initial state
+wss.on('connection', (ws, req) => {
+  // Read sessionId from cookie at handshake time — no round-trip needed
+  const cookieHeader = req.headers.cookie || '';
+  const cookieMatch  = cookieHeader.match(/(?:^|;\s*)tubedl_session=([^;]+)/);
+  const cookieSession = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
+
+  if (cookieSession) {
+    clientSessions.set(ws, cookieSession);
+  }
+
+  // Send queue state immediately (session already known from cookie)
+  const initJobs = queue.getAll(cookieSession);
+  ws.send(JSON.stringify({ type: 'queue:init', jobs: initJobs }));
+
+  // Still accept session:register in case cookie isn't available (e.g. cross-origin dev)
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message);
-      console.log('WS message received:', data.type, data.sessionId);
       if (data.type === 'session:register' && data.sessionId) {
-        clientSessions.set(ws, data.sessionId);
-        console.log('Session registered:', data.sessionId);
-        // Send only this session's queue state
-        const jobs = queue.getAll(data.sessionId);
-        console.log('Sending queue init with jobs:', jobs.length);
-        ws.send(JSON.stringify({ type: 'queue:init', jobs }));
+        // Only update if we didn't already get it from the cookie
+        if (!cookieSession) {
+          clientSessions.set(ws, data.sessionId);
+          const jobs = queue.getAll(data.sessionId);
+          ws.send(JSON.stringify({ type: 'queue:init', jobs }));
+        }
       }
     } catch (err) {
       console.error('WS message error:', err.message);
     }
   });
 
-  // Clean up on disconnect
   ws.on('close', () => {
-    console.log('WebSocket client disconnected');
     clientSessions.delete(ws);
   });
 });
