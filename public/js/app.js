@@ -940,16 +940,24 @@ function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(`${proto}://${location.host}/ws`);
   state.ws = ws;
+  console.log('WS connecting with session:', sessionId);
 
   // Send session ID when connection opens
   ws.addEventListener('open', () => {
+    console.log('WS connected, registering session');
     ws.send(JSON.stringify({ type: 'session:register', sessionId }));
+  });
+
+  ws.addEventListener('error', (err) => {
+    console.error('WS error:', err);
   });
 
   ws.addEventListener('message', (e) => {
     const msg = JSON.parse(e.data);
+    console.log('WS message:', msg.type, msg);
     switch (msg.type) {
       case 'queue:init':
+        console.log('Queue init with', msg.jobs?.length || 0, 'jobs');
         state.queue.clear();
         msg.jobs.forEach((j) => state.queue.set(j.id, j));
         renderQueue();           // full rebuild only on init / reconnect

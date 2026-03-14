@@ -11,7 +11,7 @@ const TIME_RE = /^\d+([:.]\d+)*$/;
 
 // ── Queue a download ───────────────────────────────────────
 router.post('/download', (req, res) => {
-  const { videoInfo, format, quality, sponsorBlock, subtitles, clipStart, clipEnd, audioFormat, audioQuality } = req.body;
+  const { videoInfo, format, quality, sponsorBlock, subtitles, clipStart, clipEnd, audioFormat, audioQuality, sessionId } = req.body;
 
   if (!videoInfo?.id) return res.status(400).json({ error: 'videoInfo.id is required' });
   if (!['audio', 'video'].includes(format)) return res.status(400).json({ error: 'format must be "audio" or "video"' });
@@ -20,7 +20,7 @@ router.post('/download', (req, res) => {
     return res.status(400).json({ error: 'Invalid clip time format' });
   }
 
-  const job = queue.add(videoInfo, format, quality, { sponsorBlock, subtitles, clipStart, clipEnd, audioFormat, audioQuality });
+  const job = queue.add(videoInfo, format, quality, { sessionId, sponsorBlock, subtitles, clipStart, clipEnd, audioFormat, audioQuality });
   res.json({ job: queue.get(job.id) });
 });
 

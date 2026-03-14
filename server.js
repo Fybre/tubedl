@@ -38,22 +38,29 @@ const broadcast = (data, targetSessionId = null) => {
 };
 
 wss.on('connection', (ws) => {
+  console.log('WebSocket client connected');
+  
   // Wait for client to send session ID before sending initial state
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message);
+      console.log('WS message received:', data.type, data.sessionId);
       if (data.type === 'session:register' && data.sessionId) {
         clientSessions.set(ws, data.sessionId);
+        console.log('Session registered:', data.sessionId);
         // Send only this session's queue state
-        ws.send(JSON.stringify({ type: 'queue:init', jobs: queue.getAll(data.sessionId) }));
+        const jobs = queue.getAll(data.sessionId);
+        console.log('Sending queue init with jobs:', jobs.length);
+        ws.send(JSON.stringify({ type: 'queue:init', jobs }));
       }
-    } catch (_) {
-      // Ignore invalid messages
+    } catch (err) {
+      console.error('WS message error:', err.message);
     }
   });
 
   // Clean up on disconnect
   ws.on('close', () => {
+    console.log('WebSocket client disconnected');
     clientSessions.delete(ws);
   });
 });
