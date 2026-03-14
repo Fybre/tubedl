@@ -767,7 +767,7 @@ playlistQueueMp3?.addEventListener('click', () => queuePlaylist('audio'));
 
 // ── Queue helpers (shared by full-render and patch paths) ──
 function statusChipHTML(status) {
-  const map = { pending: 'Pending', downloading: 'Downloading', completed: 'Done', failed: 'Failed', cancelled: 'Cancelled' };
+  const map = { pending: 'Pending', downloading: 'Retrieving', completed: 'Done', failed: 'Failed', cancelled: 'Cancelled' };
   return `<span class="status-chip ${status}"><span class="dot"></span>${map[status] || status}</span>`;
 }
 

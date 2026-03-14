@@ -1012,6 +1012,8 @@ details[open] > .advanced-toggle::before { transform: rotate(90deg); }
   .modal { max-width: 100%; border-bottom-left-radius: 0; border-bottom-right-radius: 0; max-height: 92dvh; overflow-y: auto; }
   .modal-backdrop { align-items: flex-end; padding: 0; }
   .quality-grid { grid-template-columns: repeat(2, 1fr); }
+  .icon-btn { width: 38px; height: 38px; }
+  .icon-btn svg { width: 18px; height: 18px; }
 }
 
 @media (min-width: 768px) {
