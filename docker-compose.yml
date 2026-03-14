@@ -1,0 +1,21 @@
+services:
+  tubedl:
+    build: .
+    image: tubedl:latest
+    container_name: tubedl
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      # Persist downloads to host
+      - ./downloads:/app/downloads
+    environment:
+      PORT: 3000
+      DOWNLOAD_DIR: /app/downloads
+      MAX_CONCURRENT: 2
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s

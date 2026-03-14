@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0d0d1a" />
+  <meta name="description" content="Download YouTube videos and music — fast, free, no limits." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="TubeDL" />
+  <title>TubeDL</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+  <link rel="apple-touch-icon" href="/icons/icon.svg" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<!-- ── Header ───────────────────────────────────────────── -->
+<header class="header">
+  <div class="header-inner">
+    <a class="logo" href="/">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+        <rect width="28" height="28" rx="8" fill="url(#lg)"/>
+        <path d="M11 9l8 5-8 5V9z" fill="#fff"/>
+        <path d="M14 20v4M11 22h6" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#7c3aed"/>
+            <stop offset="1" stop-color="#2563eb"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <span>TubeDL</span>
+    </a>
+
+    <button class="settings-toggle" id="settingsToggle" aria-label="Default settings" title="Default Settings">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+
+    <button class="queue-toggle" id="queueToggle" aria-label="Open download queue" title="Download Queue">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      <span class="queue-badge" id="queueBadge" hidden>0</span>
+    </button>
+  </div>
+</header>
+
+<!-- ── Hero / Search ─────────────────────────────────────── -->
+<main class="main">
+  <section class="hero">
+    <h1 class="hero-title">Download anything from YouTube</h1>
+    <p class="hero-sub">Search, pick a format, and let the queue handle the rest.</p>
+
+    <form class="search-form" id="searchForm" role="search">
+      <div class="search-wrap">
+        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input
+          type="search"
+          id="searchInput"
+          class="search-input"
+          placeholder="Search for videos or music…"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Search YouTube"
+        />
+        <button type="submit" class="search-btn">Search</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Results -->
+  <section class="results-section" id="resultsSection" hidden>
+    <div class="results-header">
+      <h2 class="results-title" id="resultsTitle">Results</h2>
+      <span class="results-count" id="resultsCount"></span>
+      <div class="queue-all-wrap">
+        <button class="btn btn-sm btn-queue-all" id="queueAllMp4">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          Queue all Video
+        </button>
+        <button class="btn btn-sm btn-queue-all" id="queueAllMp3">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          Queue all Audio
+        </button>
+      </div>
+    </div>
+    <div class="results-grid" id="resultsGrid"></div>
+    <div class="load-more-wrap" id="loadMoreWrap" hidden>
+      <button class="btn btn-ghost" id="loadMoreBtn">Load more</button>
+    </div>
+  </section>
+
+  <!-- Empty / Error states -->
+  <div class="state-box" id="stateBox" hidden>
+    <div class="state-icon" id="stateIcon"></div>
+    <p class="state-msg" id="stateMsg"></p>
+  </div>
+
+  <!-- Loading spinner -->
+  <div class="spinner-wrap" id="spinnerWrap" hidden aria-live="polite" aria-label="Searching…">
+    <div class="spinner"></div>
+  </div>
+</main>
+
+<!-- ── Format Modal ──────────────────────────────────────── -->
+<div class="modal-backdrop" id="modalBackdrop" hidden role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <button class="modal-close" id="modalClose" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+           stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+
+    <div class="modal-preview">
+      <img class="modal-thumb" id="modalThumb" src="" alt="" />
+      <div class="modal-meta">
+        <p class="modal-title" id="modalTitle"></p>
+        <p class="modal-channel" id="modalChannel"></p>
+        <p class="modal-duration" id="modalDuration"></p>
+      </div>
+    </div>
+
+    <div class="modal-tabs">
+      <button class="tab-btn active" data-tab="video" id="tabVideo">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+        </svg>
+        Video
+      </button>
+      <button class="tab-btn" data-tab="audio" id="tabAudio">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+        </svg>
+        Audio
+      </button>
+    </div>
+
+    <!-- Video options -->
+    <div class="tab-panel" id="panelVideo">
+      <p class="option-label">Quality</p>
+      <div class="quality-grid">
+        <label class="quality-opt"><input type="radio" name="quality" value="best" checked /><span>Best</span></label>
+        <label class="quality-opt"><input type="radio" name="quality" value="1080p" /><span>1080p</span></label>
+        <label class="quality-opt"><input type="radio" name="quality" value="720p" /><span>720p</span></label>
+        <label class="quality-opt"><input type="radio" name="quality" value="480p" /><span>480p</span></label>
+      </div>
+
+      <label class="toggle-row">
+        <span class="toggle-label">Embed subtitles (English)</span>
+        <input type="checkbox" id="optSubtitles" class="toggle-checkbox" />
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+      </label>
+
+      <details class="advanced-section">
+        <summary class="advanced-toggle">Advanced</summary>
+        <div class="advanced-body">
+          <label class="toggle-row">
+            <span class="toggle-label">Remove sponsors (SponsorBlock)</span>
+            <input type="checkbox" id="optSponsorBlockV" class="toggle-checkbox" />
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          </label>
+          <div class="clip-row">
+            <div class="clip-field">
+              <label class="clip-label" for="clipStartV">Clip start</label>
+              <input class="clip-input" id="clipStartV" type="text" placeholder="e.g. 1:30" />
+            </div>
+            <span class="clip-sep">→</span>
+            <div class="clip-field">
+              <label class="clip-label" for="clipEndV">End</label>
+              <input class="clip-input" id="clipEndV" type="text" placeholder="e.g. 4:00" />
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <button class="btn btn-primary btn-full" id="dlVideoBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+             <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Video
+      </button>
+    </div>
+
+    <!-- Audio options -->
+    <div class="tab-panel hidden" id="panelAudio">
+      <p class="option-label">Format</p>
+      <div class="format-grid">
+        <label class="format-opt"><input type="radio" name="audioFormat" value="mp3" checked /><span>MP3</span></label>
+        <label class="format-opt"><input type="radio" name="audioFormat" value="m4a" /><span>M4A</span></label>
+        <label class="format-opt"><input type="radio" name="audioFormat" value="opus" /><span>Opus</span></label>
+      </div>
+
+      <p class="option-label">Quality</p>
+      <div class="quality-grid">
+        <label class="quality-opt"><input type="radio" name="audioQuality" value="0" checked /><span>Best</span></label>
+        <label class="quality-opt"><input type="radio" name="audioQuality" value="3" /><span>High</span></label>
+        <label class="quality-opt"><input type="radio" name="audioQuality" value="5" /><span>Medium</span></label>
+      </div>
+
+      <details class="advanced-section">
+        <summary class="advanced-toggle">Advanced</summary>
+        <div class="advanced-body">
+          <label class="toggle-row">
+            <span class="toggle-label">Remove sponsors (SponsorBlock)</span>
+            <input type="checkbox" id="optSponsorBlockA" class="toggle-checkbox" />
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          </label>
+          <div class="clip-row">
+            <div class="clip-field">
+              <label class="clip-label" for="clipStartA">Clip start</label>
+              <input class="clip-input" id="clipStartA" type="text" placeholder="e.g. 1:30" />
+            </div>
+            <span class="clip-sep">→</span>
+            <div class="clip-field">
+              <label class="clip-label" for="clipEndA">End</label>
+              <input class="clip-input" id="clipEndA" type="text" placeholder="e.g. 4:00" />
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <button class="btn btn-primary btn-full" id="dlAudioBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+             <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Audio
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Settings Modal ─────────────────────────────────────── -->
+<div class="modal-backdrop" id="settingsBackdrop" hidden role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div class="modal">
+    <button class="modal-close" id="settingsClose" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+           stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+
+    <h2 class="modal-title" style="margin-bottom:1.25rem;">Default Settings</h2>
+
+    <div class="modal-tabs">
+      <button class="tab-btn active" data-settings-tab="video" id="settingsTabVideo">Video</button>
+      <button class="tab-btn" data-settings-tab="audio" id="settingsTabAudio">Audio</button>
+    </div>
+
+    <!-- Video Settings Panel -->
+    <div class="tab-panel" id="settingsPanelVideo">
+      <p class="option-label">Default Quality</p>
+      <div class="quality-grid">
+        <label class="quality-opt"><input type="radio" name="defaultQuality" value="best" checked /><span>Best</span></label>
+        <label class="quality-opt"><input type="radio" name="defaultQuality" value="1080p" /><span>1080p</span></label>
+        <label class="quality-opt"><input type="radio" name="defaultQuality" value="720p" /><span>720p</span></label>
+        <label class="quality-opt"><input type="radio" name="defaultQuality" value="480p" /><span>480p</span></label>
+      </div>
+
+      <label class="toggle-row">
+        <span class="toggle-label">Embed subtitles by default</span>
+        <input type="checkbox" id="defaultSubtitles" class="toggle-checkbox" />
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+      </label>
+
+      <details class="advanced-section">
+        <summary class="advanced-toggle">Advanced Defaults</summary>
+        <div class="advanced-body">
+          <label class="toggle-row">
+            <span class="toggle-label">Remove sponsors by default</span>
+            <input type="checkbox" id="defaultSponsorBlockV" class="toggle-checkbox" />
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          </label>
+          <div class="clip-row">
+            <div class="clip-field">
+              <label class="clip-label">Default clip start</label>
+              <input class="clip-input" id="defaultClipStartV" type="text" placeholder="e.g. 0:00" />
+            </div>
+            <span class="clip-sep">→</span>
+            <div class="clip-field">
+              <label class="clip-label">End</label>
+              <input class="clip-input" id="defaultClipEndV" type="text" placeholder="e.g. 5:00" />
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- Audio Settings Panel -->
+    <div class="tab-panel hidden" id="settingsPanelAudio">
+      <p class="option-label">Default Format</p>
+      <div class="format-grid">
+        <label class="format-opt"><input type="radio" name="defaultAudioFormat" value="mp3" checked /><span>MP3</span></label>
+        <label class="format-opt"><input type="radio" name="defaultAudioFormat" value="m4a" /><span>M4A</span></label>
+        <label class="format-opt"><input type="radio" name="defaultAudioFormat" value="opus" /><span>Opus</span></label>
+      </div>
+
+      <p class="option-label">Default Quality</p>
+      <div class="quality-grid">
+        <label class="quality-opt"><input type="radio" name="defaultAudioQuality" value="0" checked /><span>Best</span></label>
+        <label class="quality-opt"><input type="radio" name="defaultAudioQuality" value="3" /><span>High</span></label>
+        <label class="quality-opt"><input type="radio" name="defaultAudioQuality" value="5" /><span>Medium</span></label>
+      </div>
+
+      <details class="advanced-section">
+        <summary class="advanced-toggle">Advanced Defaults</summary>
+        <div class="advanced-body">
+          <label class="toggle-row">
+            <span class="toggle-label">Remove sponsors by default</span>
+            <input type="checkbox" id="defaultSponsorBlockA" class="toggle-checkbox" />
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          </label>
+          <div class="clip-row">
+            <div class="clip-field">
+              <label class="clip-label">Default clip start</label>
+              <input class="clip-input" id="defaultClipStartA" type="text" placeholder="e.g. 0:00" />
+            </div>
+            <span class="clip-sep">→</span>
+            <div class="clip-field">
+              <label class="clip-label">End</label>
+              <input class="clip-input" id="defaultClipEndA" type="text" placeholder="e.g. 5:00" />
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <button class="btn btn-primary btn-full" id="saveSettingsBtn" style="margin-top:1rem;">Save Defaults</button>
+  </div>
+</div>
+
+<!-- ── Playlist Modal ─────────────────────────────────────── -->
+<div class="modal-backdrop" id="playlistBackdrop" hidden role="dialog" aria-modal="true" aria-labelledby="playlistHeading">
+  <div class="modal modal-playlist">
+    <button class="modal-close" id="playlistClose" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+           stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <p class="modal-title" id="playlistHeading">Playlist</p>
+    <p class="modal-channel" id="playlistCount"></p>
+    <div class="playlist-list" id="playlistList">
+      <div class="spinner-wrap" id="playlistSpinner"><div class="spinner"></div></div>
+    </div>
+    <div class="playlist-actions">
+      <button class="btn btn-primary" id="playlistQueueMp4">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        Queue all Video
+      </button>
+      <button class="btn btn-ghost" id="playlistQueueMp3">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        Queue all Audio
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Preview Modal ─────────────────────────────────────── -->
+<div class="preview-backdrop" id="previewBackdrop" hidden role="dialog" aria-modal="true" aria-label="Video preview">
+  <div class="preview-box">
+    <div class="preview-header">
+      <p class="preview-title" id="previewTitle"></p>
+      <button class="modal-close" id="previewClose" aria-label="Close preview">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="preview-embed">
+      <div class="preview-loading" id="previewLoading">
+        <div class="spinner"></div>
+      </div>
+      <div class="preview-error" id="previewError" hidden>
+        <p id="previewErrorMsg">Could not load preview.</p>
+        <a class="btn btn-ghost btn-sm" id="previewYtLink" href="#" target="_blank" rel="noopener">
+          Watch on YouTube
+        </a>
+      </div>
+      <video id="previewVideo" controls playsinline hidden></video>
+    </div>
+  </div>
+</div>
+
+<!-- ── Queue Sidebar ─────────────────────────────────────── -->
+<aside class="queue-sidebar" id="queueSidebar" aria-label="Download queue">
+  <div class="queue-header">
+    <h2 class="queue-title">Queue</h2>
+    <button class="modal-close" id="queueSaveAllBtn" aria-label="Save all completed to disk" title="Save all completed">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+           <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    </button>
+    <button class="modal-close" id="queueClearBtn" aria-label="Clear completed" title="Clear completed">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+           <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+    </button>
+    <button class="modal-close" id="queueClose" aria-label="Close queue">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+           stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="queue-list" id="queueList">
+    <div class="queue-empty" id="queueEmpty">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+           stroke-linecap="round" opacity=".4">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      <p>No downloads yet</p>
+    </div>
+  </div>
+</aside>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ── Toast container ───────────────────────────────────── -->
+<div class="toast-container" id="toastContainer" aria-live="assertive"></div>
+
+<!-- ── PWA install banner ────────────────────────────────── -->
+<div class="install-banner" id="installBanner" hidden>
+  <svg width="20" height="20" viewBox="0 0 28 28" fill="none">
+    <rect width="28" height="28" rx="7" fill="url(#il)"/>
+    <path d="M11 9l8 5-8 5V9z" fill="#fff"/>
+    <defs><linearGradient id="il" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7c3aed"/><stop offset="1" stop-color="#2563eb"/>
+    </linearGradient></defs>
+  </svg>
+  <span>Add TubeDL to your home screen</span>
+  <button class="btn btn-sm" id="installBtn">Install</button>
+  <button class="install-dismiss" id="installDismiss" aria-label="Dismiss">✕</button>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>

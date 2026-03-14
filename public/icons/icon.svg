@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#g)"/>
+  <!-- Play triangle -->
+  <polygon points="180,160 180,320 340,240" fill="white" opacity="0.95"/>
+  <!-- Download arrow -->
+  <path d="M256 340 v80 M220 390 l36 40 36-40" stroke="white" stroke-width="28"
+        stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.9"/>
+</svg>
