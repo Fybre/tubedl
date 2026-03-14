@@ -1,6 +1,24 @@
 /* ── TubeDL Frontend ──────────────────────────────────────── */
 'use strict';
 
+// ── Session Management ─────────────────────────────────────
+const SESSION_COOKIE = 'tubedl_session';
+
+function getSessionId() {
+  // Check for existing session cookie
+  const cookie = document.cookie.split('; ').find(r => r.startsWith(SESSION_COOKIE + '='));
+  if (cookie) {
+    return decodeURIComponent(cookie.split('=')[1]);
+  }
+  // Generate new session ID
+  const sessionId = 'sess_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  // Store in cookie (session cookie - expires when browser closes)
+  document.cookie = `${SESSION_COOKIE}=${encodeURIComponent(sessionId)};path=/`;
+  return sessionId;
+}
+
+const sessionId = getSessionId();
+
 // ── State ──────────────────────────────────────────────────
 const state = {
   results:          [],
@@ -559,7 +577,7 @@ async function queueDownload(videoInfo, format, quality, silent = false, options
     const res = await fetch('/api/download', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ videoInfo, format, quality, ...options }),
+      body: JSON.stringify({ videoInfo, format, quality, sessionId, ...options }),
     });
     if (!res.ok) throw new Error('Failed to add download');
     if (!silent) {
@@ -922,6 +940,11 @@ function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(`${proto}://${location.host}/ws`);
   state.ws = ws;
+
+  // Send session ID when connection opens
+  ws.addEventListener('open', () => {
+    ws.send(JSON.stringify({ type: 'session:register', sessionId }));
+  });
 
   ws.addEventListener('message', (e) => {
     const msg = JSON.parse(e.data);

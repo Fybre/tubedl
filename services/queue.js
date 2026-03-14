@@ -18,6 +18,7 @@ class DownloadQueue extends EventEmitter {
     const id = uuidv4();
     const job = {
       id,
+      sessionId:    options.sessionId || 'anonymous',
       videoId:      videoInfo.id,
       url:          `https://www.youtube.com/watch?v=${videoInfo.id}`,
       title:        videoInfo.title,
@@ -121,7 +122,7 @@ class DownloadQueue extends EventEmitter {
     }
 
     this.jobs.delete(id);
-    this.emit('job:removed', { id });
+    this.emit('job:removed', { id, sessionId: job.sessionId });
     return true;
   }
 
@@ -144,9 +145,12 @@ class DownloadQueue extends EventEmitter {
     return this._pub(job);
   }
 
-  getAll() {
-    return [...this.jobs.values()]
-      .map((j) => this._pub(j))
+  getAll(sessionId = null) {
+    let jobs = [...this.jobs.values()];
+    if (sessionId) {
+      jobs = jobs.filter(j => j.sessionId === sessionId);
+    }
+    return jobs.map((j) => this._pub(j))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
 

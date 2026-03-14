@@ -25,7 +25,11 @@ router.post('/download', (req, res) => {
 });
 
 // ── Queue listing / management ─────────────────────────────
-router.get('/queue', (req, res) => res.json({ jobs: queue.getAll() }));
+// Get queue for a specific session (via query param) or all if no session
+router.get('/queue', (req, res) => {
+  const sessionId = req.query.sessionId || null;
+  res.json({ jobs: queue.getAll(sessionId) });
+});
 
 router.get('/queue/:id', (req, res) => {
   const job = queue.get(req.params.id);

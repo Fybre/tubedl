@@ -19,24 +19,57 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/search', searchRouter);
 app.use('/api', downloadsRouter);
 
-// Broadcast to all connected WebSocket clients
-const broadcast = (data) => {
+// Map to track session IDs for each WebSocket connection
+const clientSessions = new Map();
+
+// Broadcast to clients with matching session ID (or all if no session specified)
+const broadcast = (data, targetSessionId = null) => {
   const msg = JSON.stringify(data);
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(msg);
+      const clientSession = clientSessions.get(client);
+      // If no target session, broadcast to all (for backwards compatibility)
+      // If target session, only broadcast to matching clients
+      if (!targetSessionId || clientSession === targetSessionId) {
+        client.send(msg);
+      }
     }
   });
 };
 
 wss.on('connection', (ws) => {
-  // Send current queue state on connect
-  ws.send(JSON.stringify({ type: 'queue:init', jobs: queue.getAll() }));
+  // Wait for client to send session ID before sending initial state
+  ws.on('message', (message) => {
+    try {
+      const data = JSON.parse(message);
+      if (data.type === 'session:register' && data.sessionId) {
+        clientSessions.set(ws, data.sessionId);
+        // Send only this session's queue state
+        ws.send(JSON.stringify({ type: 'queue:init', jobs: queue.getAll(data.sessionId) }));
+      }
+    } catch (_) {
+      // Ignore invalid messages
+    }
+  });
+
+  // Clean up on disconnect
+  ws.on('close', () => {
+    clientSessions.delete(ws);
+  });
 });
 
-queue.on('job:added',   (job)  => broadcast({ type: 'job:added',   job }));
-queue.on('job:updated', (job)  => broadcast({ type: 'job:updated', job }));
-queue.on('job:removed', (data) => broadcast({ type: 'job:removed', ...data }));
+// Broadcast job events only to the session that owns the job
+queue.on('job:added', (job) => {
+  broadcast({ type: 'job:added', job }, job.sessionId);
+});
+
+queue.on('job:updated', (job) => {
+  broadcast({ type: 'job:updated', job }, job.sessionId);
+});
+
+queue.on('job:removed', (data) => {
+  broadcast({ type: 'job:removed', ...data }, data.sessionId);
+});
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
