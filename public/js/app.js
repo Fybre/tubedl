@@ -583,8 +583,54 @@ async function removeJob(id) {
   await fetch(`/api/queue/${id}`, { method: 'DELETE' });
 }
 
-function downloadFile(id) {
-  window.location.href = `/api/file/${id}`;
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function isPWA() {
+  return window.matchMedia('(display-mode: standalone)').matches || 
+         window.navigator.standalone === true;
+}
+
+async function downloadFile(id) {
+  const url = `/api/file/${id}`;
+  
+  // On iOS PWA, use fetch + blob to avoid navigation issues
+  if (isIOS() && isPWA()) {
+    try {
+      toast('Downloading...', 'info');
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Download failed');
+      
+      const blob = await response.blob();
+      const filename = response.headers.get('Content-Disposition')?.match(/filename\*?="?([^"]+)"?/)?.[1] || 'download';
+      
+      // Create object URL and trigger download
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = decodeURIComponent(filename);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      // Clean up
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      
+      // Show share button for iOS since downloads are tricky
+      if (navigator.share && blob.size < 50 * 1024 * 1024) { // Under 50MB
+        toast('Download started. Tap save to save to Files.', 'success');
+      }
+    } catch (err) {
+      toast('Download failed. Try opening in Safari.', 'error');
+      // Fallback to normal download
+      window.location.href = url;
+    }
+  } else {
+    // Normal download for other platforms
+    window.location.href = url;
+  }
 }
 
 // ── Queue Sidebar ──────────────────────────────────────────
