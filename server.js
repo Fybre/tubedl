@@ -63,6 +63,11 @@ queue.on('job:removed', (data) => {
   broadcast({ type: 'job:removed', ...data }, data.sessionId);
 });
 
+// Ping every 20s — prevents iOS from suspending the WebSocket connection
+setInterval(() => {
+  wss.clients.forEach((ws) => { if (ws.readyState === WebSocket.OPEN) ws.ping(); });
+}, 20000);
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`TubeDL running on http://0.0.0.0:${PORT}`);

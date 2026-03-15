@@ -2,12 +2,13 @@
 'use strict';
 
 // ── Session ────────────────────────────────────────────────
-const SESSION_COOKIE = 'tubedl_session';
+// localStorage is device-local and never synced (unlike cookies via iCloud Keychain)
 function getSessionId() {
-  const cookie = document.cookie.split('; ').find(r => r.startsWith(SESSION_COOKIE + '='));
-  if (cookie) return decodeURIComponent(cookie.split('=')[1]);
-  const id = 'sess_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-  document.cookie = `${SESSION_COOKIE}=${encodeURIComponent(id)};path=/`;
+  let id = localStorage.getItem('tubedl_session');
+  if (!id) {
+    id = 'sess_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    localStorage.setItem('tubedl_session', id);
+  }
   return id;
 }
 const sessionId = getSessionId();
