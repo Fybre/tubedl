@@ -786,7 +786,7 @@ function attachCardActions(card, id) {
 
 function updateBadge() {
   const active = [...state.queue.values()].filter(
-    (j) => j.status === 'pending' || j.status === 'downloading'
+    (j) => j.status === 'pending' || j.status === 'downloading' || j.status === 'processing'
   ).length;
   queueBadge.textContent = active;
   queueBadge.hidden = active === 0;

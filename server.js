@@ -38,13 +38,12 @@ const broadcast = (data, targetSessionId = null) => {
 };
 
 wss.on('connection', (ws, req) => {
-  // Session ID passed as ?sid= query param — reliable across all environments
-  const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
-  const sid = urlParams.get('sid') || null;
+  // Parse ?sid= from the WebSocket URL — safe regex, can't throw
+  const m = req.url.match(/[?&]sid=([^&#]+)/);
+  const sid = m ? decodeURIComponent(m[1]) : null;
 
   if (sid) clientSessions.set(ws, sid);
 
-  // Send this session's queue state immediately
   ws.send(JSON.stringify({ type: 'queue:init', jobs: queue.getAll(sid) }));
 
   ws.on('error', (err) => console.error('WS error:', err.message));

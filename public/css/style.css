@@ -857,8 +857,8 @@ details[open] > .advanced-toggle::before { transform: rotate(90deg); }
   flex-shrink: 0;
 }
 .icon-btn {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -867,8 +867,8 @@ details[open] > .advanced-toggle::before { transform: rotate(90deg); }
   transition: background var(--transition), color var(--transition);
 }
 .icon-btn svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
 }
 .icon-btn:hover { background: var(--surface3); color: var(--text); }
