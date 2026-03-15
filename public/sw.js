@@ -1,5 +1,5 @@
 /* TubeDL Service Worker */
-const CACHE = 'tubedl-v1';
+const CACHE = 'tubedl-v5';
 const SHELL = ['/', '/css/style.css', '/js/app.js', '/manifest.json'];
 
 self.addEventListener('install', (e) => {
