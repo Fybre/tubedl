@@ -133,9 +133,9 @@ function download(job, onProgress) {
         const destMatch  = line.match(/\[download\] Destination:\s+(.+)/);
         if (destMatch)  { job._lastDest = destMatch[1].trim();  continue; }
         const mergeMatch = line.match(/\[Merger\] Merging formats into "(.+)"/);
-        if (mergeMatch) { job._lastDest = mergeMatch[1].trim(); continue; }
+        if (mergeMatch) { job._lastDest = mergeMatch[1].trim(); onProgress({ processing: true }); continue; }
         const audioMatch = line.match(/\[ExtractAudio\] Destination:\s+(.+)/);
-        if (audioMatch) { job._lastDest = audioMatch[1].trim(); }
+        if (audioMatch) { job._lastDest = audioMatch[1].trim(); onProgress({ processing: true }); }
       }
     });
 

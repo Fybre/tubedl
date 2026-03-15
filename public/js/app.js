@@ -1,22 +1,15 @@
 /* ── TubeDL Frontend ──────────────────────────────────────── */
 'use strict';
 
-// ── Session Management ─────────────────────────────────────
+// ── Session ────────────────────────────────────────────────
 const SESSION_COOKIE = 'tubedl_session';
-
 function getSessionId() {
-  // Check for existing session cookie
   const cookie = document.cookie.split('; ').find(r => r.startsWith(SESSION_COOKIE + '='));
-  if (cookie) {
-    return decodeURIComponent(cookie.split('=')[1]);
-  }
-  // Generate new session ID
-  const sessionId = 'sess_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-  // Store in cookie (session cookie - expires when browser closes)
-  document.cookie = `${SESSION_COOKIE}=${encodeURIComponent(sessionId)};path=/`;
-  return sessionId;
+  if (cookie) return decodeURIComponent(cookie.split('=')[1]);
+  const id = 'sess_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  document.cookie = `${SESSION_COOKIE}=${encodeURIComponent(id)};path=/`;
+  return id;
 }
-
 const sessionId = getSessionId();
 
 // ── State ──────────────────────────────────────────────────
@@ -767,20 +760,20 @@ playlistQueueMp3?.addEventListener('click', () => queuePlaylist('audio'));
 
 // ── Queue helpers (shared by full-render and patch paths) ──
 function statusChipHTML(status) {
-  const map = { pending: 'Pending', downloading: 'Retrieving', completed: 'Done', failed: 'Failed', cancelled: 'Cancelled' };
+  const map = { pending: 'Pending', downloading: 'Retrieving', processing: 'Processing', completed: 'Done', failed: 'Failed', cancelled: 'Cancelled' };
   return `<span class="status-chip ${status}"><span class="dot"></span>${map[status] || status}</span>`;
 }
 
 function actionsHTML(status) {
   let h = '';
   if (status === 'completed')
-    h += `<button class="icon-btn dl-btn" title="Save file"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>`;
+    h += `<button class="icon-btn dl-btn" title="Save file"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>`;
   if (status === 'failed' || status === 'cancelled')
-    h += `<button class="icon-btn retry-btn" title="Retry"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg></button>`;
-  if (status === 'pending' || status === 'downloading')
-    h += `<button class="icon-btn cancel-btn danger" title="Cancel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+    h += `<button class="icon-btn retry-btn" title="Retry"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg></button>`;
+  if (status === 'pending' || status === 'downloading' || status === 'processing')
+    h += `<button class="icon-btn cancel-btn danger" title="Cancel"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
   if (status === 'completed' || status === 'failed' || status === 'cancelled')
-    h += `<button class="icon-btn remove-btn danger" title="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`;
+    h += `<button class="icon-btn remove-btn danger" title="Remove"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`;
   return h;
 }
 
@@ -932,24 +925,16 @@ function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(`${proto}://${location.host}/ws`);
   state.ws = ws;
-  console.log('WS connecting with session:', sessionId);
 
-  // Send session ID when connection opens
+  // Fallback: register session over WS (used if cookie wasn't in upgrade headers)
   ws.addEventListener('open', () => {
-    console.log('WS connected, registering session');
     ws.send(JSON.stringify({ type: 'session:register', sessionId }));
-  });
-
-  ws.addEventListener('error', (err) => {
-    console.error('WS error:', err);
   });
 
   ws.addEventListener('message', (e) => {
     const msg = JSON.parse(e.data);
-    console.log('WS message:', msg.type, msg);
     switch (msg.type) {
       case 'queue:init':
-        console.log('Queue init with', msg.jobs?.length || 0, 'jobs');
         state.queue.clear();
         msg.jobs.forEach((j) => state.queue.set(j.id, j));
         renderQueue();           // full rebuild only on init / reconnect

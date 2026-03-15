@@ -18,7 +18,7 @@ class DownloadQueue extends EventEmitter {
     const id = uuidv4();
     const job = {
       id,
-      sessionId:    options.sessionId || 'anonymous',
+      sessionId:    options.sessionId || null,
       videoId:      videoInfo.id,
       url:          `https://www.youtube.com/watch?v=${videoInfo.id}`,
       title:        videoInfo.title,
@@ -63,7 +63,11 @@ class DownloadQueue extends EventEmitter {
 
     try {
       await ytdlp.download(job, (progress) => {
-        Object.assign(job, progress);
+        if (progress.processing) {
+          job.status = 'processing';
+        } else {
+          Object.assign(job, progress);
+        }
         this.emit('job:updated', this._pub(job));
       });
       job.status      = 'completed';
@@ -98,8 +102,8 @@ class DownloadQueue extends EventEmitter {
     const job = this.jobs.get(id);
     if (!job) return false;
 
-    if (job.status === 'pending' || job.status === 'downloading') {
-      const wasDownloading = job.status === 'downloading';
+    if (job.status === 'pending' || job.status === 'downloading' || job.status === 'processing') {
+      const wasDownloading = job.status === 'downloading' || job.status === 'processing';
       job.status = 'cancelled';
       ytdlp.killProcess(job);
       this.emit('job:updated', this._pub(job));
@@ -147,9 +151,7 @@ class DownloadQueue extends EventEmitter {
 
   getAll(sessionId = null) {
     let jobs = [...this.jobs.values()];
-    if (sessionId) {
-      jobs = jobs.filter(j => j.sessionId === sessionId);
-    }
+    if (sessionId) jobs = jobs.filter((j) => j.sessionId === sessionId);
     return jobs.map((j) => this._pub(j))
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }

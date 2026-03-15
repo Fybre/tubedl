@@ -857,8 +857,8 @@ details[open] > .advanced-toggle::before { transform: rotate(90deg); }
   flex-shrink: 0;
 }
 .icon-btn {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -902,8 +902,9 @@ details[open] > .advanced-toggle::before { transform: rotate(90deg); }
   border-radius: 99px;
 }
 .status-chip.pending  { background: rgba(96,96,160,.15); color: var(--text3); }
-.status-chip.downloading { background: rgba(37,99,235,.15); color: #60a5fa; }
-.status-chip.completed   { background: rgba(34,197,94,.12); color: var(--success); }
+.status-chip.downloading  { background: rgba(37,99,235,.15); color: #60a5fa; }
+.status-chip.processing   { background: rgba(139,92,246,.15); color: #a78bfa; }
+.status-chip.completed    { background: rgba(34,197,94,.12); color: var(--success); }
 .status-chip.failed      { background: rgba(239,68,68,.12); color: var(--error); }
 .status-chip.cancelled   { background: rgba(96,96,160,.12); color: var(--text3); }
 
@@ -912,7 +913,8 @@ details[open] > .advanced-toggle::before { transform: rotate(90deg); }
   border-radius: 50%;
   background: currentColor;
 }
-.status-chip.downloading .dot {
+.status-chip.downloading .dot,
+.status-chip.processing .dot {
   animation: pulse 1.2s ease-in-out infinite;
 }
 @keyframes pulse {
@@ -1012,8 +1014,7 @@ details[open] > .advanced-toggle::before { transform: rotate(90deg); }
   .modal { max-width: 100%; border-bottom-left-radius: 0; border-bottom-right-radius: 0; max-height: 92dvh; overflow-y: auto; }
   .modal-backdrop { align-items: flex-end; padding: 0; }
   .quality-grid { grid-template-columns: repeat(2, 1fr); }
-  .icon-btn { width: 38px; height: 38px; }
-  .icon-btn svg { width: 18px; height: 18px; }
+
 }
 
 @media (min-width: 768px) {
