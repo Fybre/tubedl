@@ -661,10 +661,34 @@ queueClearBtn.addEventListener('click', async () => {
   await Promise.all(done.map((j) => removeJob(j.id)));
 });
 
-// Save all completed files to disk (sequential with small delay so browser doesn't block)
+// Save all completed files
 $('queueSaveAllBtn').addEventListener('click', async () => {
   const completed = [...state.queue.values()].filter((j) => j.status === 'completed');
   if (!completed.length) { toast('No completed downloads to save', 'info'); return; }
+
+  if (isIOS() && navigator.canShare) {
+    // iOS: fetch all blobs then share in one sheet (loop is blocked after first gesture)
+    toast(`Preparing ${completed.length} file${completed.length > 1 ? 's' : ''}…`, 'info');
+    try {
+      const files = await Promise.all(completed.map(async (job) => {
+        const res = await fetch(`/api/file/${job.id}`);
+        if (!res.ok) throw new Error('File not available');
+        const blob = await res.blob();
+        const ext  = blob.type.includes('audio') ? '.mp3' : '.mp4';
+        const name = (job.title || 'download').replace(/[<>:"/\\|?*]/g, '').trim().substring(0, 100) + ext;
+        return new File([blob], name, { type: blob.type });
+      }));
+      if (navigator.canShare({ files })) {
+        await navigator.share({ files });
+        return;
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      // fall through to sequential fallback
+    }
+  }
+
+  // Non-iOS: trigger downloads sequentially
   for (const job of completed) {
     const a = document.createElement('a');
     a.href = `/api/file/${job.id}`;
@@ -672,7 +696,6 @@ $('queueSaveAllBtn').addEventListener('click', async () => {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    // Small gap so the browser registers each download separately
     await new Promise((r) => setTimeout(r, 300));
   }
   toast(`Saving ${completed.length} file${completed.length > 1 ? 's' : ''}…`, 'success');
