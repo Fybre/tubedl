@@ -767,13 +767,13 @@ function statusChipHTML(status) {
 function actionsHTML(status) {
   let h = '';
   if (status === 'completed')
-    h += `<button class="icon-btn dl-btn" title="Save file"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>`;
+    h += `<button class="icon-btn dl-btn" title="Save file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>`;
   if (status === 'failed' || status === 'cancelled')
-    h += `<button class="icon-btn retry-btn" title="Retry"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg></button>`;
+    h += `<button class="icon-btn retry-btn" title="Retry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg></button>`;
   if (status === 'pending' || status === 'downloading' || status === 'processing')
-    h += `<button class="icon-btn cancel-btn danger" title="Cancel"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+    h += `<button class="icon-btn cancel-btn danger" title="Cancel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
   if (status === 'completed' || status === 'failed' || status === 'cancelled')
-    h += `<button class="icon-btn remove-btn danger" title="Remove"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`;
+    h += `<button class="icon-btn remove-btn danger" title="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`;
   return h;
 }
 
@@ -923,13 +923,8 @@ function removeJobCard(id) {
 // ── WebSocket ──────────────────────────────────────────────
 function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  const ws = new WebSocket(`${proto}://${location.host}/ws`);
+  const ws = new WebSocket(`${proto}://${location.host}/ws?sid=${encodeURIComponent(sessionId)}`);
   state.ws = ws;
-
-  // Fallback: register session over WS (used if cookie wasn't in upgrade headers)
-  ws.addEventListener('open', () => {
-    ws.send(JSON.stringify({ type: 'session:register', sessionId }));
-  });
 
   ws.addEventListener('message', (e) => {
     const msg = JSON.parse(e.data);

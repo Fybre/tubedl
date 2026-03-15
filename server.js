@@ -38,39 +38,17 @@ const broadcast = (data, targetSessionId = null) => {
 };
 
 wss.on('connection', (ws, req) => {
-  // Read sessionId from cookie at handshake time — no round-trip needed
-  const cookieHeader = req.headers.cookie || '';
-  const cookieMatch  = cookieHeader.match(/(?:^|;\s*)tubedl_session=([^;]+)/);
-  const cookieSession = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
+  // Session ID passed as ?sid= query param — reliable across all environments
+  const urlParams = new URL(req.url, `http://${req.headers.host}`).searchParams;
+  const sid = urlParams.get('sid') || null;
 
-  if (cookieSession) {
-    clientSessions.set(ws, cookieSession);
-  }
+  if (sid) clientSessions.set(ws, sid);
 
-  // Send queue state immediately (session already known from cookie)
-  const initJobs = queue.getAll(cookieSession);
-  ws.send(JSON.stringify({ type: 'queue:init', jobs: initJobs }));
+  // Send this session's queue state immediately
+  ws.send(JSON.stringify({ type: 'queue:init', jobs: queue.getAll(sid) }));
 
-  // Still accept session:register in case cookie isn't available (e.g. cross-origin dev)
-  ws.on('message', (message) => {
-    try {
-      const data = JSON.parse(message);
-      if (data.type === 'session:register' && data.sessionId) {
-        // Only update if we didn't already get it from the cookie
-        if (!cookieSession) {
-          clientSessions.set(ws, data.sessionId);
-          const jobs = queue.getAll(data.sessionId);
-          ws.send(JSON.stringify({ type: 'queue:init', jobs }));
-        }
-      }
-    } catch (err) {
-      console.error('WS message error:', err.message);
-    }
-  });
-
-  ws.on('close', () => {
-    clientSessions.delete(ws);
-  });
+  ws.on('error', (err) => console.error('WS error:', err.message));
+  ws.on('close', () => clientSessions.delete(ws));
 });
 
 // Broadcast job events only to the session that owns the job
