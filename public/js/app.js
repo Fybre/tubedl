@@ -701,6 +701,36 @@ $('queueSaveAllBtn').addEventListener('click', async () => {
   toast(`Saving ${completed.length} file${completed.length > 1 ? 's' : ''}…`, 'success');
 });
 
+// Download all completed files as a single ZIP
+$('queueZipBtn').addEventListener('click', async () => {
+  const completed = [...state.queue.values()].filter((j) => j.status === 'completed');
+  if (!completed.length) { toast('No completed downloads to zip', 'info'); return; }
+
+  toast(`Building ZIP for ${completed.length} file${completed.length > 1 ? 's' : ''}…`, 'info');
+
+  if (isIOS() && navigator.canShare) {
+    // iOS: fetch the zip blob then share it
+    try {
+      const res = await fetch(`/api/zip?sessionId=${encodeURIComponent(sessionId)}`);
+      if (!res.ok) throw new Error('ZIP not available');
+      const blob = await res.blob();
+      const file = new File([blob], 'tubedl-downloads.zip', { type: 'application/zip' });
+      if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return; }
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      // fall through to anchor download
+    }
+  }
+
+  const a = document.createElement('a');
+  a.href = `/api/zip?sessionId=${encodeURIComponent(sessionId)}`;
+  a.download = 'tubedl-downloads.zip';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+});
+
 // Queue all visible results with chosen format
 $('queueAllMp4').addEventListener('click', () => queueAll('video', 'best'));
 $('queueAllMp3').addEventListener('click', () => queueAll('audio'));

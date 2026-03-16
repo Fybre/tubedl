@@ -3,6 +3,7 @@ const router  = express.Router();
 const path    = require('path');
 const fs      = require('fs');
 const { spawn }         = require('child_process');
+const archiver          = require('archiver');
 const { fetchPlaylist } = require('../services/ytdlp');
 const queue             = require('../services/queue');
 
@@ -78,6 +79,35 @@ router.get('/file/:id', (req, res) => {
 
   // Remove from queue (and delete file) once the response is fully sent
   res.on('close', () => queue.remove(req.params.id));
+});
+
+// ── Zip all completed files for a session ─────────────────
+router.get('/zip', (req, res) => {
+  const sessionId = req.query.sessionId || null;
+  const completed = queue.getAll(sessionId).filter((j) => j.status === 'completed');
+
+  if (!completed.length) return res.status(404).json({ error: 'No completed files to zip' });
+
+  const files = completed
+    .map((j) => ({ job: j, filePath: queue.getFilePath(j.id) }))
+    .filter(({ filePath }) => filePath && fs.existsSync(filePath));
+
+  if (!files.length) return res.status(404).json({ error: 'No files found on disk' });
+
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', 'attachment; filename="tubedl-downloads.zip"');
+
+  const archive = archiver('zip', { zlib: { level: 0 } }); // level 0 = store only (audio/video already compressed)
+  archive.on('error', (err) => { if (!res.headersSent) res.status(500).end(); else res.end(); });
+  archive.pipe(res);
+
+  for (const { job, filePath } of files) {
+    const ext      = path.extname(filePath).toLowerCase();
+    const safeName = (job.title || 'download').replace(/[<>:"/\\|?*]/g, '').trim().substring(0, 200) + ext;
+    archive.file(filePath, { name: safeName });
+  }
+
+  archive.finalize();
 });
 
 // ── Playlist info ──────────────────────────────────────────
