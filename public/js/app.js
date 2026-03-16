@@ -702,26 +702,13 @@ $('queueSaveAllBtn').addEventListener('click', async () => {
 });
 
 // Download all completed files as a single ZIP
-$('queueZipBtn').addEventListener('click', async () => {
+$('queueZipBtn').addEventListener('click', () => {
   const completed = [...state.queue.values()].filter((j) => j.status === 'completed');
   if (!completed.length) { toast('No completed downloads to zip', 'info'); return; }
 
+  // Synchronous anchor click keeps the user gesture alive on iOS.
+  // ZIP isn't shareable via Web Share API, so we skip that path entirely.
   toast(`Building ZIP for ${completed.length} file${completed.length > 1 ? 's' : ''}…`, 'info');
-
-  if (isIOS() && navigator.canShare) {
-    // iOS: fetch the zip blob then share it
-    try {
-      const res = await fetch(`/api/zip?sessionId=${encodeURIComponent(sessionId)}`);
-      if (!res.ok) throw new Error('ZIP not available');
-      const blob = await res.blob();
-      const file = new File([blob], 'tubedl-downloads.zip', { type: 'application/zip' });
-      if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return; }
-    } catch (err) {
-      if (err.name === 'AbortError') return;
-      // fall through to anchor download
-    }
-  }
-
   const a = document.createElement('a');
   a.href = `/api/zip?sessionId=${encodeURIComponent(sessionId)}`;
   a.download = 'tubedl-downloads.zip';
