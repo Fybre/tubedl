@@ -1,5 +1,5 @@
 /* TubeDL Service Worker */
-const CACHE = 'tubedl-v6';
+const CACHE = 'tubedl-v7';
 
 self.addEventListener('install', (e) => {
   // Only pre-cache the bare HTML shell for offline navigation
@@ -25,8 +25,8 @@ self.addEventListener('fetch', (e) => {
 
   if (e.request.method !== 'GET') return;
 
-  // CSS and JS: network-first so updates are instant; fall back to cache if offline
-  if (url.pathname.endsWith('.css') || url.pathname.endsWith('.js')) {
+  // HTML, CSS, JS: network-first so updates are instant; fall back to cache if offline
+  if (e.request.mode === 'navigate' || url.pathname.endsWith('.css') || url.pathname.endsWith('.js')) {
     e.respondWith(
       fetch(e.request)
         .then((res) => {
