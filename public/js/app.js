@@ -605,31 +605,44 @@ async function downloadFile(id) {
   const job = state.queue.get(id);
 
   if (isIOS()) {
-    // Try Web Share API with file blob (iOS 15+, works in PWA and Safari)
-    if (navigator.canShare) {
-      toast('Preparing download…', 'info');
+    toast('Preparing download…', 'info');
+    let blob;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('File not available');
+      blob = await response.blob();
+    } catch (err) {
+      toast(`Download failed: ${err.message}`, 'error');
+      return;
+    }
+
+    // Server has now closed the connection and removed the file — always use blob URL from here on.
+    const ext      = blob.type.includes('audio') ? '.mp3' : '.mp4';
+    const name     = ((job?.title || 'download').replace(/[<>:"/\\|?*]/g, '').trim().substring(0, 100)) + ext;
+    const file     = new File([blob], name, { type: blob.type });
+    const blobUrl  = URL.createObjectURL(blob);
+    const cleanup  = () => setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+
+    // Try Web Share API (iOS 15+) — may fail if gesture context expired during fetch
+    if (navigator.canShare?.({ files: [file] })) {
       try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('File not available');
-        const blob = await response.blob();
-        const ext  = blob.type.includes('audio') ? '.mp3' : '.mp4';
-        const name = ((job?.title || 'download').replace(/[<>:"/\\|?*]/g, '').trim().substring(0, 100)) + ext;
-        const file = new File([blob], name, { type: blob.type });
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: name });
-          return;
-        }
+        await navigator.share({ files: [file], title: name });
+        cleanup();
+        return;
       } catch (err) {
-        if (err.name === 'AbortError') return; // user dismissed share sheet
-        // fall through to Safari open
+        if (err.name === 'AbortError') { cleanup(); return; }
+        // share failed — fall through to blob URL
       }
     }
-    // Fallback: open URL in Safari — user taps Share → Save to Files
-    window.open(url, '_blank');
+
+    // Fallback: open blob URL in Safari — user taps Share → Save to Files
+    window.open(blobUrl, '_blank');
     toast('Tap the Share button → Save to Files', 'info');
-  } else {
-    window.location.href = url;
+    cleanup();
+    return;
   }
+
+  window.location.href = url;
 }
 
 // ── Queue Sidebar ──────────────────────────────────────────
@@ -661,11 +674,14 @@ $('queueSaveAllBtn').addEventListener('click', async () => {
   const completed = [...state.queue.values()].filter((j) => j.status === 'completed');
   if (!completed.length) { toast('No completed downloads to save', 'info'); return; }
 
-  if (isIOS() && navigator.canShare) {
-    // iOS: fetch all blobs then share in one sheet (loop is blocked after first gesture)
+  if (isIOS()) {
+    // iOS: fetch all blobs first, then share or open via blob URLs.
+    // Server removes each file as its fetch connection closes, so we must
+    // not use server URLs after this point.
     toast(`Preparing ${completed.length} file${completed.length > 1 ? 's' : ''}…`, 'info');
+    let files;
     try {
-      const files = await Promise.all(completed.map(async (job) => {
+      files = await Promise.all(completed.map(async (job) => {
         const res = await fetch(`/api/file/${job.id}`);
         if (!res.ok) throw new Error('File not available');
         const blob = await res.blob();
@@ -673,14 +689,31 @@ $('queueSaveAllBtn').addEventListener('click', async () => {
         const name = (job.title || 'download').replace(/[<>:"/\\|?*]/g, '').trim().substring(0, 100) + ext;
         return new File([blob], name, { type: blob.type });
       }));
-      if (navigator.canShare({ files })) {
+    } catch (err) {
+      if (err.name !== 'AbortError') toast(`Fetch failed: ${err.message}`, 'error');
+      return;
+    }
+
+    // Try Web Share API (may fail if gesture context expired during fetches)
+    if (navigator.canShare?.({ files })) {
+      try {
         await navigator.share({ files });
         return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        // share failed — fall through to blob URLs
       }
-    } catch (err) {
-      if (err.name === 'AbortError') return;
-      // fall through to sequential fallback
     }
+
+    // Fallback: open each as a blob URL (user taps Share → Save to Files per file)
+    for (const file of files) {
+      const blobUrl = URL.createObjectURL(file);
+      window.open(blobUrl, '_blank');
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    toast('Tap Share → Save to Files in each tab', 'info');
+    return;
   }
 
   // Non-iOS: trigger downloads sequentially
