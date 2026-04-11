@@ -103,11 +103,9 @@ class DownloadQueue extends EventEmitter {
     if (!job) return false;
 
     if (job.status === 'pending' || job.status === 'downloading' || job.status === 'processing') {
-      const wasDownloading = job.status === 'downloading' || job.status === 'processing';
       job.status = 'cancelled';
       ytdlp.killProcess(job);
       this.emit('job:updated', this._pub(job));
-      if (wasDownloading) this.activeCount--;
       this._processNext();
       return true;
     }

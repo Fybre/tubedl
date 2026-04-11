@@ -168,13 +168,8 @@ function handleYouTubeURL(url) {
   if (isPlaylistURL(url)) {
     openPlaylistModal(url);
   } else {
-    // Single video URL — extract video ID and treat as a single-item search
-    const m = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    if (m) {
-      doSearch(url);
-    } else {
-      doSearch(url);
-    }
+    // Single video URL — treat as a search term (yt-dlp handles it directly)
+    doSearch(url);
   }
 }
 
@@ -427,10 +422,10 @@ const previewErrorMsg  = $('previewErrorMsg');
 const previewYtLink    = $('previewYtLink');
 const previewTitleEl   = $('previewTitle');
 
-function setPreviewState(state) {
-  previewLoading.hidden = state !== 'loading';
-  previewVideo.hidden   = state !== 'ready';
-  previewError.hidden   = state !== 'error';
+function setPreviewState(s) {
+  previewLoading.hidden = s !== 'loading';
+  previewVideo.hidden   = s !== 'ready';
+  previewError.hidden   = s !== 'error';
 }
 
 async function openPreview(video) {
