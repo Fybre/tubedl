@@ -1032,3 +1032,33 @@ details[open] > .advanced-toggle::before { transform: rotate(90deg); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* ── iOS Share Prompt ────────────────────────────────────── */
+.ios-share-prompt {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,.55);
+  display: flex;
+  align-items: flex-end;
+  padding: 1rem;
+}
+.ios-share-sheet {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  animation: slideUp .25s ease;
+}
+.ios-share-title {
+  font-weight: 600;
+  font-size: 1rem;
+}
+.ios-share-label {
+  color: var(--text2);
+  font-size: .85rem;
+}

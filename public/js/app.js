@@ -602,47 +602,40 @@ function isPWA() {
 
 async function downloadFile(id) {
   const url = `/api/file/${id}`;
-  const job = state.queue.get(id);
 
   if (isIOS()) {
-    toast('Preparing download…', 'info');
-    let blob;
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('File not available');
-      blob = await response.blob();
-    } catch (err) {
-      toast(`Download failed: ${err.message}`, 'error');
-      return;
-    }
-
-    // Server has now closed the connection and removed the file — always use blob URL from here on.
-    const ext      = blob.type.includes('audio') ? '.mp3' : '.mp4';
-    const name     = ((job?.title || 'download').replace(/[<>:"/\\|?*]/g, '').trim().substring(0, 100)) + ext;
-    const file     = new File([blob], name, { type: blob.type });
-    const blobUrl  = URL.createObjectURL(blob);
-    const cleanup  = () => setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-
-    // Try Web Share API (iOS 15+) — may fail if gesture context expired during fetch
-    if (navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: name });
-        cleanup();
-        return;
-      } catch (err) {
-        if (err.name === 'AbortError') { cleanup(); return; }
-        // share failed — fall through to blob URL
-      }
-    }
-
-    // Fallback: open blob URL in Safari — user taps Share → Save to Files
-    window.open(blobUrl, '_blank');
-    toast('Tap the Share button → Save to Files', 'info');
-    cleanup();
+    // Open directly — the server's Content-Disposition: attachment header triggers
+    // the native iOS download bar (iOS 13+). No blob fetch, no gesture-timing issues.
+    window.open(url, '_blank');
     return;
   }
 
   window.location.href = url;
+}
+
+// ── iOS Share Prompt ───────────────────────────────────────
+// Pre-fetch blobs lose the user gesture, so we surface a bottom sheet.
+// The user's tap on "Save to Files" is a fresh gesture → navigator.share() works.
+function showIOSSharePrompt(files, label) {
+  document.querySelector('.ios-share-prompt')?.remove();
+
+  const el = document.createElement('div');
+  el.className = 'ios-share-prompt';
+  el.innerHTML = `
+    <div class="ios-share-sheet">
+      <p class="ios-share-title">Files ready</p>
+      <p class="ios-share-label">${escapeHtml(label)}</p>
+      <button class="btn btn-primary btn-full ios-share-btn">Save to Files</button>
+      <button class="btn btn-ghost btn-full ios-share-cancel">Cancel</button>
+    </div>`;
+
+  el.querySelector('.ios-share-btn').addEventListener('click', () => {
+    navigator.share({ files }).catch(() => {});
+    el.remove();
+  });
+  el.querySelector('.ios-share-cancel').addEventListener('click', () => el.remove());
+  el.addEventListener('click', (e) => { if (e.target === el) el.remove(); });
+  document.body.appendChild(el);
 }
 
 // ── Queue Sidebar ──────────────────────────────────────────
@@ -675,10 +668,16 @@ $('queueSaveAllBtn').addEventListener('click', async () => {
   if (!completed.length) { toast('No completed downloads to save', 'info'); return; }
 
   if (isIOS()) {
-    // iOS: fetch all blobs first, then share or open via blob URLs.
-    // Server removes each file as its fetch connection closes, so we must
-    // not use server URLs after this point.
-    toast(`Preparing ${completed.length} file${completed.length > 1 ? 's' : ''}…`, 'info');
+    if (completed.length === 1) { downloadFile(completed[0].id); return; }
+
+    if (!navigator.canShare) {
+      toast('Use the ZIP button to download all at once', 'info');
+      return;
+    }
+
+    // Pre-fetch all blobs (gesture context is lost during awaits, which is fine —
+    // we'll re-acquire it via the share prompt button below).
+    toast(`Preparing ${completed.length} files…`, 'info');
     let files;
     try {
       files = await Promise.all(completed.map(async (job) => {
@@ -690,29 +689,17 @@ $('queueSaveAllBtn').addEventListener('click', async () => {
         return new File([blob], name, { type: blob.type });
       }));
     } catch (err) {
-      if (err.name !== 'AbortError') toast(`Fetch failed: ${err.message}`, 'error');
+      toast(`Fetch failed: ${err.message}`, 'error');
       return;
     }
 
-    // Try Web Share API (may fail if gesture context expired during fetches)
-    if (navigator.canShare?.({ files })) {
-      try {
-        await navigator.share({ files });
-        return;
-      } catch (err) {
-        if (err.name === 'AbortError') return;
-        // share failed — fall through to blob URLs
-      }
+    if (!navigator.canShare({ files })) {
+      toast('Use the ZIP button to download all at once', 'info');
+      return;
     }
 
-    // Fallback: open each as a blob URL (user taps Share → Save to Files per file)
-    for (const file of files) {
-      const blobUrl = URL.createObjectURL(file);
-      window.open(blobUrl, '_blank');
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-      await new Promise((r) => setTimeout(r, 300));
-    }
-    toast('Tap Share → Save to Files in each tab', 'info');
+    // Show a bottom sheet — the user's tap gives us a fresh gesture for navigator.share()
+    showIOSSharePrompt(files, `${files.length} files ready to save`);
     return;
   }
 
