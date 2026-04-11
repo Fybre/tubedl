@@ -602,10 +602,45 @@ function isPWA() {
 
 async function downloadFile(id) {
   const url = `/api/file/${id}`;
+  const job = state.queue.get(id);
 
   if (isIOS()) {
-    // Open directly — the server's Content-Disposition: attachment header triggers
-    // the native iOS download bar (iOS 13+). No blob fetch, no gesture-timing issues.
+    if (isPWA()) {
+      // In PWA standalone mode, window.open() leaves the app and opens Safari.
+      // Instead: pre-fetch the blob, then show the share prompt so navigator.share()
+      // is called synchronously inside a fresh user gesture.
+      const dlBtn = queueList.querySelector(`[data-id="${id}"] .dl-btn`);
+      if (dlBtn) dlBtn.disabled = true;
+
+      let file;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('File not available');
+        const blob = await response.blob();
+        const ext  = blob.type.includes('audio') ? '.mp3' : '.mp4';
+        const name = ((job?.title || 'download').replace(/[<>:"/\\|?*]/g, '').trim().substring(0, 100)) + ext;
+        file = new File([blob], name, { type: blob.type });
+      } catch (err) {
+        toast(`Download failed: ${err.message}`, 'error');
+        if (dlBtn) dlBtn.disabled = false;
+        return;
+      }
+
+      if (dlBtn) dlBtn.disabled = false;
+
+      if (navigator.canShare?.({ files: [file] })) {
+        showIOSSharePrompt([file], file.name);
+      } else {
+        // Web Share not available in this PWA context — blob URL is last resort
+        const blobUrl = URL.createObjectURL(file);
+        window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      }
+      return;
+    }
+
+    // Regular Safari (not PWA): Content-Disposition: attachment triggers the
+    // native iOS download bar — simple, no blob fetch needed.
     window.open(url, '_blank');
     return;
   }
